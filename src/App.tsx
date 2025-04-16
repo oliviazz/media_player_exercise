@@ -6,16 +6,15 @@ import playlistsRaw from "./data/playlists.json";
 import { Track, Playlist } from "./types";
 import { InfoIcon } from "./components/icons/Icons";
 
-let playlists = playlistsRaw;
 // --- Type definition for the session play counts store ---
-type PlayCounts = {
-  [playlistId: number]: {
-    [trackId: string]: number; // Key is Track ID (assuming it's a string), value is count
-  };
-};
-
 // // --- Not used, but for storing leaderboard sessionStorage ---
-const PLAY_COUNTS_SESSION_KEY = "waveAppPlayCounts_Session"; // Use a distinct key
+// type PlayCounts = {
+//   [playlistId: number]: {
+//     [trackId: string]: number; // Key is Track ID (assuming it's a string), value is count
+//   };
+// };
+
+// const PLAY_COUNTS_SESSION_KEY = "waveAppPlayCounts_Session"; // Use a distinct key
 // --- Simple wave graphic calculation based on time of song ---
 const DynamicGraphicPlaceholder: React.FC<{ beatEnergy: number }> = ({
   beatEnergy,
@@ -184,9 +183,9 @@ function App() {
 
   // Set initial playlist and track
   useEffect(() => {
-    console.log("Loading playlist:", playlists.playlists[0]);
-    if (playlists.playlists.length > 0) {
-      const firstPlaylist = playlists.playlists[0];
+    console.log("Loading playlist:", playlistsRaw.playlists[0]);
+    if (playlistsRaw.playlists.length > 0) {
+      const firstPlaylist = playlistsRaw.playlists[0];
       setCurrentPlaylist({
         id: 0,
         name: firstPlaylist.name,
@@ -360,8 +359,6 @@ function App() {
           currentTime={currentTime}
           duration={duration}
           onSeek={handleSeek}
-          onPlayPause={() => setIsPlaying(!isPlaying)}
-          isPlaying={isPlaying}
           volumeGradient={volume}
         />
         <DynamicGraphicPlaceholder beatEnergy={beatEnergy} />
@@ -371,9 +368,9 @@ function App() {
         isPlaying={isPlaying}
         playListData={processedPlaylists}
         currentPlaylist={currentPlaylist}
-        currentTrack={
-          (currentPlaylist?.tracks[currentTrackIndex] as Track) ?? null
-        }
+        // currentTrack={
+        //   (currentPlaylist?.tracks[currentTrackIndex] as Track) ?? null
+        // }
         currentTrackIndex={currentTrackIndex}
         onPlayPause={() => setIsPlaying(!isPlaying)}
         onNext={playNextTrack}

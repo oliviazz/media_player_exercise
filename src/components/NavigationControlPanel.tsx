@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Track, Playlist } from "../types"; // Import types
+import { Playlist } from "../types"; // Import types
 import { PreviousIcon, PauseIcon, PlayIcon, NextIcon } from "./icons/Icons";
 
 const formatTime = (seconds: number) => {
@@ -17,7 +17,6 @@ interface NavigationControlPanelProps {
   onTrackSelect: (playlist: Playlist, trackIndex: number) => void;
   currentPlaylist: Playlist | null;
   currentTrackIndex: number;
-  currentTrack: Track | null;
 }
 
 const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
@@ -29,7 +28,6 @@ const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
   onTrackSelect,
   currentPlaylist,
   currentTrackIndex,
-  currentTrack,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -37,8 +35,6 @@ const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
   const dragHandleRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef<number>(0);
   const panelCurrentOffset = useRef<number>(0);
-  const [isFlashing, setIsFlashing] = useState(false);
-  const flashTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(
     null

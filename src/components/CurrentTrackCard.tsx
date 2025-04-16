@@ -8,8 +8,6 @@ interface CurrentTrackProps {
   currentTime: number;
   duration: number;
   onSeek: (time: number) => void;
-  onPlayPause: () => void;
-  isPlaying: boolean;
   volumeGradient: number;
 }
 
@@ -19,8 +17,6 @@ const CurrentTrackCard: React.FC<CurrentTrackProps> = ({
   currentTime,
   duration,
   onSeek,
-  onPlayPause,
-  isPlaying,
   volumeGradient,
 }) => {
   if (!track) {
