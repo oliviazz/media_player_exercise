@@ -1,15 +1,15 @@
 interface Track {
-  id: string;
-  name: string;
+  id: number; // We'll need to assign this when loading
+  name: string; // Matches JSON
   url: string;
-  duration: number;
-  albumArt?: string;
+  duration?: number; // Matches JSON (optional if sometimes missing)
 }
 
 interface Playlist {
-  name: string;
-  artist: string;
-  year: number;
+  id: number; // We'll need to assign this when loading
+  name: string; // Matches JSON
+  artist: string; // Matches JSON (assuming "artist:" is a typo for "artist")
+  year?: number; // Optional
   tracks: Track[];
 }
 

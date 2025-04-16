@@ -1,62 +1,180 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 
 import NavigationControlPanel from "./components/NavigationControlPanel";
-import CurrentTrack from "./components/CurrentTrack";
-
-import playlists from "./data/playlists.json";
+import CurrentTrackCard from "./components/CurrentTrackCard";
+import playlistsRaw from "./data/playlists.json";
 import { Track, Playlist } from "./types";
+import { InfoIcon } from "./components/icons/Icons";
+
+let playlists = playlistsRaw;
+// --- Type definition for the session play counts store ---
+type PlayCounts = {
+  [playlistId: number]: {
+    [trackId: string]: number; // Key is Track ID (assuming it's a string), value is count
+  };
+};
+
+// // --- Not used, but for storing leaderboard sessionStorage ---
+const PLAY_COUNTS_SESSION_KEY = "waveAppPlayCounts_Session"; // Use a distinct key
+// --- Simple wave graphic calculation based on time of song ---
+const DynamicGraphicPlaceholder: React.FC<{ beatEnergy: number }> = ({
+  beatEnergy,
+}) => {
+  const calculateSinePath = (energy: number): string => {
+    const width = 300; // SVG coordinate width
+    const height = 100; // SVG coordinate height
+    const centerY = height / 2;
+    const points = [];
+    // Normalize energy...
+    const normalizedEnergy = Math.min(1, Math.max(0, energy / 150));
+    // Parameters influenced by energy...
+    const baseAmplitude = 5;
+    const extraAmplitude = 35;
+    const amplitude = baseAmplitude + normalizedEnergy * extraAmplitude;
+    const frequency = 0.05;
+    const pointsDensity = 5;
+
+    for (let x = 0; x <= width; x += pointsDensity) {
+      const y = centerY + Math.sin(x * frequency) * amplitude;
+      points.push(`${x},${y.toFixed(2)}`);
+    }
+    if (points.length === 0) return "";
+    return `M ${points[0]} L ${points.slice(1).join(" ")}`;
+  };
+
+  const sinePathData = useMemo(
+    () => calculateSinePath(beatEnergy),
+    [beatEnergy]
+  );
+  const strokeWidth = 1 + (beatEnergy / 150) * 2;
+
+  return (
+    <div className="w-full max-w-2xl mx-auto mt-0 mb-12 md:mt-0 md:mb-16 h-40 md:h-48">
+      {/* SVG for Sine Wave */}
+      <svg
+        viewBox="0 0 300 100"
+        preserveAspectRatio="none"
+        className="w-full h-full"
+      >
+        <path
+          d={sinePathData} // Use the calculated path data
+          fill="none"
+          stroke="rgba(255, 255, 255, 0.6)"
+          strokeWidth={strokeWidth.toFixed(2)}
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+};
 
 function App() {
-  // === CORE AUDIO SYSTEM: Basic state for playback ===
+  // Process Raw Data to create typed Playlist array
+  const processedPlaylists: Playlist[] = playlistsRaw.playlists.map(
+    (playlistData: any, index: number): Playlist => ({
+      id: index, // Assign a simple numeric ID based on index
+      name: playlistData.name,
+      artist: playlistData["artist"] || "Unknown Artist", // Use correct key and provide default
+      year: playlistData.year,
+      // IMPORTANT: Use 'playlist' property name if that's the type definition
+      // If type uses 'tracks', keep using 'tracks' here. Assuming 'tracks' for now based on later code.
+      tracks: playlistData.tracks.map(
+        (trackData: any, trackIndex: number): Track => ({
+          // Ensure Track type definition expects these fields (string ID)
+          id: trackIndex,
+          name: trackData.name,
+          url: trackData.url,
+          duration: trackData.duration,
+        })
+      ),
+    })
+  );
 
   // Track, Playlist Meta Info
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
-  const [currentPlaylist, setCurrentPlaylist] = useState<Playlist | null>(null);
-  const [currentPlaylistIndex, setCurrentPlaylistIndex] = useState(0);
-  const [shuffle, setShuffle] = useState(false);
+  const [currentPlaylist, setCurrentPlaylist] = useState<Playlist | null>(
+    processedPlaylists.length > 0 ? processedPlaylists[0] : null
+  );
 
+  const [currentPlaylistIndex, setCurrentPlaylistIndex] = useState(0);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   // Current Track Playback State
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  // TBD.... Audio Analysis System ?
   const audioRef = useRef<HTMLAudioElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
+  // analyserRef would be used to calculate beat for Sine Wave, if time
+  // const analyserRef = useRef<AnalyserNode | null>(null);
+
   const [beatEnergy, setBeatEnergy] = useState(0);
+  const [volume, setVolume] = useState(1); // Default volume: 1 (100%)
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
-  // ==================================================
-  // Listeners to handle button toggles
-  const playNextTrack = () => {
-    if (!currentPlaylist || !currentTrack) {
-      console.log("No playlist or track found");
-      return;
+  // (This would be used to store play counts to display a leaderboard)
+  // const [sessionPlayCounts, setSessionPlayCounts] = useState<PlayCounts>(() => {
+  //   try {
+  //     const storedCounts = sessionStorage.getItem(PLAY_COUNTS_SESSION_KEY); // Read from sessionStorage
+  //     return storedCounts ? JSON.parse(storedCounts) : {}; // Parse stored JSON or default to {}
+  //   } catch (error) {
+  //     console.error("Error reading play counts from sessionStorage:", error);
+  //     return {}; // Default to empty object on error
+  //   }
+  // });
+
+  // ---------------------------------------------
+  // Animation Helper: Dummy sine wave based on time, eventually sync to beat
+  useEffect(() => {
+    if (!audioRef.current || !isPlaying) return;
+    const updateEnergy = () => {
+      if (audioRef.current) {
+        const volume = audioRef.current.volume;
+        const time = audioRef.current.currentTime;
+        setBeatEnergy(Math.abs(Math.sin(time) * 100)); // Simple fake beat
+        setVolume(volume);
+      }
+      requestAnimationFrame(updateEnergy);
+    };
+
+    const animation = requestAnimationFrame(updateEnergy);
+    return () => cancelAnimationFrame(animation);
+  }, [isPlaying]);
+
+  // Volume control - also affects div display
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
     }
-
-    const currentIndex = currentPlaylist.tracks.findIndex(
-      (t) => t.url === currentTrack.url
-    );
-    const nextIndex = (currentIndex + 1) % currentPlaylist.tracks.length;
-    setCurrentTrack(currentPlaylist.tracks[nextIndex]);
+  };
+  // ==================================================
+  // Play Next Track
+  const playNextTrack = () => {
+    if (!currentPlaylist || !currentTrack) return;
+    const nextIndex =
+      (currentTrackIndex + 1 + currentPlaylist.tracks.length) %
+      currentPlaylist.tracks.length;
+    console.log("cur", currentTrackIndex, "bext", nextIndex);
+    console.log("nextIndex", nextIndex);
+    setCurrentTrackIndex(nextIndex);
     setIsPlaying(true);
+    setCurrentTime(0);
   };
 
-  // could add a loop playlist or not state
+  // Play Previous Track
   const playPreviousTrack = () => {
     if (!currentPlaylist || !currentTrack) return;
-
-    const currentIndex = currentPlaylist.tracks.findIndex(
-      (t) => t.url === currentTrack.url
-    );
     const prevIndex =
-      (currentIndex - 1 + currentPlaylist.tracks.length) %
+      (currentTrackIndex - 1 + currentPlaylist.tracks.length) %
       currentPlaylist.tracks.length;
-    setCurrentTrack(currentPlaylist.tracks[prevIndex]);
+    setCurrentTrackIndex(prevIndex);
     setIsPlaying(true);
+    setCurrentTime(0);
   };
 
+  // Adjust time of current track
   const handleSeek = (time: number) => {
     if (audioRef.current) {
       audioRef.current.currentTime = time;
@@ -64,21 +182,18 @@ function App() {
     }
   };
 
-  // ==================================================
-  // === TESTING: First verify playlists load correctly ===
-
-  // ---------------------------------------------
-  // EFFECT: LOADING THE PLAYLISTS
+  // Set initial playlist and track
   useEffect(() => {
     console.log("Loading playlist:", playlists.playlists[0]);
     if (playlists.playlists.length > 0) {
       const firstPlaylist = playlists.playlists[0];
       setCurrentPlaylist({
+        id: 0,
         name: firstPlaylist.name,
-        artist: firstPlaylist["artist:"],
+        artist: firstPlaylist["artist"],
         year: firstPlaylist.year,
-        tracks: firstPlaylist.tracks.map((track) => ({
-          id: track.name,
+        tracks: firstPlaylist.tracks.map((track: any, index: number) => ({
+          id: index,
           name: track.name,
           url: track.url,
           duration: track.duration,
@@ -86,49 +201,50 @@ function App() {
       });
       if (firstPlaylist.tracks.length > 0) {
         setCurrentTrack({
-          id: firstPlaylist.tracks[0].name,
-          name: firstPlaylist.tracks[0].name,
-          url: firstPlaylist.tracks[0].url,
-          duration: firstPlaylist.tracks[0].duration,
+          id: currentTrackIndex,
+          name: processedPlaylists[currentPlaylistIndex].tracks[
+            currentTrackIndex
+          ].name,
+          url: processedPlaylists[currentPlaylistIndex].tracks[
+            currentTrackIndex
+          ].url,
+          duration:
+            processedPlaylists[currentPlaylistIndex].tracks[currentTrackIndex]
+              .duration,
         });
       }
     }
-    // Maybe add error catching with display module?
+    // If time better UX error catching - ie first track in Neither and Both is broken
   }, []);
 
   // ---------------------------------------------
-  // === CORE PLAYBACK: Keep this enabled to test basic audio ===
-  // EFFECT: ACTUALLY PLAYING THE MUSIC
+  // Play the music
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying) {
-        const playPromise = audioRef.current.play();
-        if (playPromise) {
-          playPromise.catch((error) => {
-            console.error("Playback failed:", error);
-          });
-        }
+        audioRef.current.play();
       } else {
         audioRef.current.pause();
       }
     }
-  }, [isPlaying, currentTrack]); // Add currentTrack to dependencies
+  }, [isPlaying]);
 
-  //
   // ---------------------------------------------
-  // EFFECT: RESET TIME WHEN TRACK CHANGES
+  //When current track changes, reset time to start from 0
   useEffect(() => {
+    console.log("Track changed, resetting time for:", currentTrack?.name); // Optional log
     setCurrentTime(0);
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
     }
-  }, [currentTrack]);
+  }, [currentTrack, currentTrackIndex]);
 
   //---------------------------------------------
-  // Add this effect to auto-play when track changes
+  // When a new track is selected, play it
   useEffect(() => {
-    if (audioRef.current && currentTrack) {
+    if (audioRef.current && currentTrackIndex >= 0 && currentPlaylist) {
       // If we're supposed to be playing, start playing the new track
+      setIsPlaying(true);
       if (isPlaying) {
         const playPromise = audioRef.current.play();
         if (playPromise) {
@@ -138,218 +254,218 @@ function App() {
         }
       }
     }
-  }, [currentTrack]); // This effect runs whenever the track changes
-
-  // ---------------------------------------------
-  // Getting experimentall... trying to get beat energy?
+  }, [currentTrack, currentTrackIndex]);
+  //---------------------------------------------
+  // Keyboard Listeners
   useEffect(() => {
-    if (!audioRef.current || !isPlaying) return;
-
-    // Just detect volume changes for now, no AudioContext
-    const updateEnergy = () => {
-      if (audioRef.current) {
-        // wait both of these are working though
-        const volume = audioRef.current.volume;
-        const time = audioRef.current.currentTime;
-        console.log(volume, "volume", time, "time");
-        setBeatEnergy(Math.abs(Math.sin(time * volume) * 100)); // Simple fake beat
+    const handleKeyDown = (event: KeyboardEvent) => {
+      switch (event.code) {
+        // TODO:  L/R arrow keys were wonky, commented out
+        // case "ArrowLeft":
+        //   console.log("Left arrow pressed");
+        //   playPreviousTrack();
+        //   break;
+        // case "ArrowRight":
+        //   console.log("Right arrow pressed");
+        //   playNextTrack();
+        //   break;
+        case "Space":
+          console.log("Space pressed");
+          setIsPlaying((prev) => !prev);
+          break;
       }
-      // idk what this is
-      requestAnimationFrame(updateEnergy);
-      console.log("Beat energy:", beatEnergy);
     };
 
-    const animation = requestAnimationFrame(updateEnergy);
-    return () => cancelAnimationFrame(animation);
-  }, [isPlaying]);
-  // ---------------------------------------------
-  // useEffect(() => {
-  //   if (currentTrack) {
-  //     console.log("Trying to load track:", {
-  //       url: currentTrack.url,
-  //       name: currentTrack.name,
-  //     });
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
-  //     // Test if URL is accessible
-  //     fetch(currentTrack.url, { method: "HEAD" })
-  //       .then((response) => {
-  //         console.log("URL status:", response.status);
-  //       })
-  //       .catch((error) => {
-  //         console.log("URL error:", error);
-  //       });
-  //   }
-  // }, [currentTrack]);
-
-  // // === START TEST: Minimal beat detection ===
-  // const [energy, setEnergy] = useState(0);
-  // const testContextRef = useRef<AudioContext | null>(null);
-  // const testAnalyserRef = useRef<AnalyserNode | null>(null);
-
-  // useEffect(() => {
-  //   if (!audioRef.current || testContextRef.current) return; // Only create once
-
-  //   try {
-  //     testContextRef.current = new AudioContext();
-  //     testAnalyserRef.current = testContextRef.current.createAnalyser();
-  //     testAnalyserRef.current.fftSize = 32;
-
-  //     const source = testContextRef.current.createMediaElementSource(
-  //       audioRef.current
-  //     );
-  //     source.connect(testContextRef.current.destination);
-  //     source.connect(testAnalyserRef.current);
-
-  //     function detectBeat() {
-  //       if (!testAnalyserRef.current) return;
-  //       const data = new Uint8Array(testAnalyserRef.current.frequencyBinCount);
-  //       testAnalyserRef.current.getByteFrequencyData(data);
-  //       const avg = data.reduce((acc, val) => acc + val, 0) / data.length;
-  //       setEnergy(avg);
-  //       requestAnimationFrame(detectBeat);
-  //     }
-
-  //     detectBeat();
-  //     console.log("Beat detection enabled");
-  //   } catch (error) {
-  //     console.log("Beat detection disabled:", error);
-  //   }
-  // }, []);
-  // // === END TEST: Minimal beat detection ===
-
-  // === AUDIO ANALYSIS SETUP: Currently causing playback issues ===
-  /* useEffect(() => {
-    if (!audioRef.current || analyserRef.current) return;
-
-    try {
-      audioContextRef.current = new AudioContext();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 32;
-      
-      sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
-      sourceRef.current.connect(audioContextRef.current.destination);
-      sourceRef.current.connect(analyserRef.current);
-      
-      console.log('Audio analysis setup complete');
-    } catch (error) {
-      console.error('Audio setup error:', error);
-    }
-  }, []); */
-
-  // Reset time when track changes
-
-  // === START TEST: Debug playlist data ===
-  // useEffect(() => {
-  //   console.log("First track data:", {
-  //     original: playlists.playlists[0].tracks[0],
-  //     url: playlists.playlists[0].tracks[0].url,
-  //   });
-  // }, []);
-  // === END TEST: Debug playlist data ===
-
-  // === START TEST: Tiny beat energy ===
-
-  // === END TEST: Tiny beat energy ===
-
-  // === START AUDIO ANALYSIS TEST ===
-  /*
-  // These refs hold our audio analysis setup
-  
-  const audioContextRef = useRef<AudioContext | null>(null);  
-   // Manages audio processing
-  const analyserRef = useRef<AnalyserNode | null>(null);      
-   // Analyzes frequency data
-  const [realBeatEnergy, setRealBeatEnergy] = useState(0);     
-  // Stores current beat energy
-
-  // This effect sets up audio analysis when playing starts
+  // === Update useEffect for Track Changes ===
+  // Reset time/duration and load new track
   useEffect(() => {
-    // Only set up if:
-    // 1. We have an audio element (<audio> is mounted)
-    // 2. Music is playing
-    // 3. We haven't already set up analysis
-    if (!audioRef.current || !isPlaying || audioContextRef.current) return;
-
-    try {
-      // Create new audio processing context
-      audioContextRef.current = new AudioContext();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 32;
-
-      // Connect our <audio> element to the analyzer
-      const source = audioContextRef.current.createMediaElementSource(audioRef.current);
-      // Connect to speakers first (important!)
-      source.connect(audioContextRef.current.destination);
-      // Then connect to analyzer
-      source.connect(analyserRef.current);
-
-      // Start analyzing frequency data
-      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-      function analyzeBeat() {
-        if (!analyserRef.current) return;
-        analyserRef.current.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
-        setRealBeatEnergy(average);
-        requestAnimationFrame(analyzeBeat);
-      }
-      analyzeBeat();
-
-    } catch (error) {
-      console.error('Audio analysis failed:', error);
+    if (
+      currentPlaylist &&
+      currentPlaylist.tracks.length > 0 &&
+      currentPlaylistIndex >= currentPlaylist.tracks.length
+    ) {
+      // Reset index to 0 if it becomes invalid
+      setCurrentPlaylistIndex(0);
     }
 
-    // Clean up when component unmounts or playing stops
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
+    const trackToPlay = currentPlaylist?.tracks[currentTrackIndex] ?? null;
+
+    if (audioRef.current && trackToPlay) {
+      // Only change src and load if the track ID is actually different
+      if (audioRef.current.src !== trackToPlay.url) {
+        console.log(`Loading new track: ${trackToPlay.name}`);
+        audioRef.current.src = trackToPlay.url;
+        audioRef.current.load(); // Load the new source
+        setCurrentTime(0);
+        setDuration(0);
+        if (isPlaying) {
+          // If it was playing, try to play the new track
+          audioRef.current
+            .play()
+            .catch((e) => console.error("Error playing new track:", e));
+          // Increment count for the *new* track that just started playing
+          // incrementPlayCount(currentPlaylist?.id ?? 0, trackToPlay.id);
+        }
       }
-    };
-  }, [isPlaying]);
+    } else if (audioRef.current && !trackToPlay) {
+      // Handle case where playlist becomes empty or track is invalid
+      audioRef.current.pause();
+      audioRef.current.removeAttribute("src");
+      setCurrentTime(0);
+      setDuration(0);
+      setIsPlaying(false);
+    }
+  }, [currentPlaylistIndex, currentPlaylist, currentTrackIndex]); // Depend on index and playlist object
 
-  // Display the beat energy
-  <div className="fixed bottom-4 right-4 text-xs text-white/50">
-    real beat: {Math.round(realBeatEnergy)}
-  </div>
-  */
-  // === END AUDIO ANALYSIS TEST ===
-
-  // === END TEST: Debug audio loading ===
+  // For panel: handler for track selection
+  const handleTrackSelection = (playlist: Playlist, trackIndex: number) => {
+    console.log(`Track selected: ${playlist.name} - Index ${trackIndex}`);
+    if (trackIndex !== -1) {
+      setCurrentPlaylist(playlist); // Or playlists[playlistIndex]
+      setCurrentTrackIndex(trackIndex);
+      setCurrentTrack(playlist.tracks[trackIndex]);
+      setCurrentTime(0);
+      setIsPlaying(true); // Start playing the selected track
+      console.log("currentTrack", currentTrack, playlist.tracks[trackIndex]);
+    } else {
+      console.error("Selected playlist not found in main list");
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-900 to-primary-950 text-white">
+    <div className="relative min-h-screen bg-gradient-to-b from-primary-800 to-primary-950 text-white overflow-hidden h-full">
       <audio
         ref={audioRef}
-        src={currentTrack?.url}
-        onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+        onTimeUpdate={(e) =>
+          !e.currentTarget.seeking &&
+          setCurrentTime(e.currentTarget.currentTime)
+        }
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onEnded={playNextTrack}
       />
-      <CurrentTrack
-        track={currentTrack}
-        playlist={currentPlaylist}
-        currentTime={currentTime}
-        duration={duration}
-        onSeek={handleSeek}
-        onPlayPause={() => setIsPlaying(!isPlaying)}
-      />
-
+      <div className="h-full overflow-y-auto pt-12 md:pt-16 pb-64 md:pb-72 px-4 flex flex-col items-center">
+        <div className="text-center mb-1 mt-1">
+          <svg className="w-10 h-10 text-white/80 mx-auto" />
+          <h1 className="text-5xl md:text-6xl font-bold text-white/90 tracking-tight">
+            wave
+          </h1>
+        </div>
+        <CurrentTrackCard
+          track={(currentPlaylist?.tracks[currentTrackIndex] as Track) ?? null}
+          playlist={currentPlaylist}
+          currentTime={currentTime}
+          duration={duration}
+          onSeek={handleSeek}
+          onPlayPause={() => setIsPlaying(!isPlaying)}
+          isPlaying={isPlaying}
+          volumeGradient={volume}
+        />
+        <DynamicGraphicPlaceholder beatEnergy={beatEnergy} />
+      </div>{" "}
+      {/* Navigation Control Panel, Draggable */}
       <NavigationControlPanel
         isPlaying={isPlaying}
-        shuffle={shuffle}
+        playListData={processedPlaylists}
+        currentPlaylist={currentPlaylist}
+        currentTrack={
+          (currentPlaylist?.tracks[currentTrackIndex] as Track) ?? null
+        }
+        currentTrackIndex={currentTrackIndex}
         onPlayPause={() => setIsPlaying(!isPlaying)}
-        onShuffle={() => setShuffle(!shuffle)}
         onNext={playNextTrack}
         onPrevious={playPreviousTrack}
+        onTrackSelect={handleTrackSelection}
       />
-
-      {/* === START TEST: Beat display === */}
-      <div className="fixed bottom-4 right-4 text-xs text-white/50">
-        {isPlaying && `energy: ${Math.round(beatEnergy)}`}
+      <div className="fixed top-4 right-4 text-xs text-white/50 z-20">
+        <div className="flex items-center space-x-2">
+          {" "}
+          <span>Vol:</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={handleVolumeChange}
+            className="w-20 h-1 accent-white/50 bg-white/20 rounded-full appearance-none cursor-pointer"
+          />
+          <button onClick={() => setShowInfoTooltip(!showInfoTooltip)}>
+            <InfoIcon className="w-4 h-4" />
+          </button>
+        </div>
+        {showInfoTooltip && (
+          <div
+            className="absolute top-full right-0 mt-1 w-max max-w-xs p-3 bg-white/80 text-primary-900 text-xs rounded shadow-lg whitespace-pre-wrap z-30 text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ul className="list-disc list-inside space-y-1">
+              <li>Pull menu up to view playlists.</li>
+              <li>Space toggles play/pause </li>
+              <br></br>
+              <i>By @oliviazz </i>
+            </ul>
+          </div>
+        )}
       </div>
-      {/* === END TEST: Beat display === */}
     </div>
   );
 }
 
 export default App;
+
+// Leaderboard Functions - Not Used, but could show top tracks played per session
+// === Effect to SAVE state TO sessionStorage whenever it changes ===
+// useEffect(() => {
+//   try {
+//     console.log(sessionPlayCounts);
+//     // Only save if sessionPlayCounts is not empty (optional optimization)
+//     if (Object.keys(sessionPlayCounts).length > 0) {
+//       sessionStorage.setItem(
+//         PLAY_COUNTS_SESSION_KEY,
+//         JSON.stringify(sessionPlayCounts)
+//       ); // Save to sessionStorage
+//       // console.log("Saved play counts to sessionStorage"); // Debug log (optional)
+//     } else {
+//       // Optionally remove the item if the counts become empty
+//       sessionStorage.removeItem(PLAY_COUNTS_SESSION_KEY); // Remove from sessionStorage
+//       // console.log("Removed empty play counts from sessionStorage");
+//     }
+//   } catch (error) {
+//     console.error("Error saving play counts to sessionStorage:", error);
+//   }
+// }, [sessionPlayCounts]); // Run this effect whenever sessionPlayCounts changes
+
+// === Function to Increment Play Count (updates state, triggers save effect) ===
+// const incrementPlayCount = (playlistId: number, trackId: string) => {
+//   setSessionPlayCounts((prevCounts) => {
+//     const currentCount = prevCounts[playlistId]?.[trackId] ?? 0;
+//     const newCount = currentCount + 1;
+//     // console.log(`Incrementing play count for Playlist ${playlistId}, Track ${trackId} to ${newCount}`); // Debug log
+//     return {
+//       ...prevCounts,
+//       [playlistId]: {
+//         ...prevCounts[playlistId],
+//         [trackId]: newCount,
+//       },
+//     };
+//   });
+// };
+// === Update useEffect for Playback to call increment ===
+// useEffect(() => {
+//   if (isPlaying && audioRef.current) {
+//     audioRef.current
+//       .play()
+//       .catch((e) => console.error("Error playing audio:", e));
+//     // Increment count when playback starts (or resumes)
+//     if (currentPlaylist && currentTrack) {
+//       incrementPlayCount(currentPlaylist.id, currentTrack.id);
+//     }
+//   } else if (audioRef.current) {
+//     audioRef.current.pause();
+//   }
+//   // eslint-disable-next-line react-hooks/exhaustive-deps
+// }, [isPlaying]); // Trigger ONLY when isPlaying changes - prevents incrementing just because track object reference changed

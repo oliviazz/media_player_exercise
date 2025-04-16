@@ -4,9 +4,11 @@ interface ProgressBarProps {
   onSeek?: (time: number) => void;
 }
 
+// ---------------------------------------------
+// Progress Bar Component for Current Track Card
+// ---------------------------------------------
 const ProgressBar = ({ currentTime, duration, onSeek }: ProgressBarProps) => {
   const progress = (currentTime / duration) * 100;
-
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!onSeek) return;
 

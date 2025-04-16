@@ -2,7 +2,7 @@
   "playlists": [
     {
       "name": "Deep House",
-      "artist:": "Nul Tiel Records",
+      "artist": "Nul Tiel Records",
       "year": 2022,
       "tracks": [
         {
@@ -54,7 +54,7 @@
     },
     {
       "name": "Neither and Both",
-      "artist:": "Brylie Christopher Oxley",
+      "artist": "Brylie Christopher Oxley",
       "year": 2023,
       "tracks": [
         {
