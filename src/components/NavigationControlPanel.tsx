@@ -253,13 +253,13 @@ const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
 
       {/* Main content  */}
       <div
-        className={`flex flex-row flex-grow overflow-hidden transition-opacity duration-300 ${
+        className={`flex flex-row justify-center flex-grow overflow-hidden transition-opacity duration-300 px-0 ${
           isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
         {/* Left column: showing playlists */}
-        <div className="w-2/5 border-r border-white/10 overflow-y-auto p-4 h-full flex flex-col items-center">
-          <ul className="space-y-2 w-full max-w-xs">
+        <div className="w-2/5 border-r border-white/10 overflow-y-auto p-4 mx-auto h-full flex flex-col items-center">
+          <ul className="space-y-2 w-full max-w-md px-2 mx-auto  flex flex-col">
             {Array.isArray(playListData) &&
               playListData.map((playlist) => {
                 const isCurrentPlaylist = currentPlaylist?.id === playlist.id;
@@ -275,13 +275,11 @@ const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
                     }`}
                   >
                     <p
-                      className={`p-2 rounded-lg cursor-pointer transition-colors truncate ${
-                        isCurrentPlaylist ? "text-blue" : "text-white"
-                      }`}
+                      className={`p-2 rounded-lg cursor-pointer transition-colors truncate ${"text-white"}`}
                     >
                       {playlist.name}
                     </p>
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-white/60 pl-2">
                       {playlist.artist || "Unknown"} | {playlist.year} 〰{" "}
                       {Array.isArray(playlist.tracks)
                         ? playlist.tracks.length
@@ -295,10 +293,10 @@ const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
         </div>
 
         {/* Right Column: tracks */}
-        <div className="w-3/5 p-4 h-full flex flex-col">
+        <div className="w-3/5 p-4 h-full flex flex-col items-center">
           {selectedPlaylist ? (
             <>
-              <div className="flex-shrink-0 w-full mb-4 bg-white/40 rounded-lg p-4">
+              <div className="flex-shrink-0 w-3/4 mb-4 bg-white/30 rounded-lg p-3">
                 <h3 className="text-lg font-semibold text-white text-left truncate w-full">
                   {selectedPlaylist.name}
                 </h3>
