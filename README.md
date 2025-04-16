@@ -1,16 +1,17 @@
+
 # Linear Media Player
 
-Hey, thanks for taking the time to work on this exercise. We're excited to see what you come up with –
-the goal is to create an audio player for playing a predefined playlist of audio files. Think of it
-like a stripped-down version of Spotify or the classic Winamp.
-
-## Screenshots 
+## Project Screenshots 
 
 **Expanded Menu View w/ Volume Fade**
 <img width="1502" alt="Screenshot 2025-04-16 at 11 00 36 AM" src="https://github.com/user-attachments/assets/68e4f659-75e6-4fc6-830d-5d7c7c878508" />
 
 **Collapsed Menu View**
 <img width="1231" alt="Screenshot 2025-04-16 at 10 59 17 AM" src="https://github.com/user-attachments/assets/5094eac5-882c-4ed2-b26e-6d7b0ff9c1d4" />
+
+Hey, thanks for taking the time to work on this exercise. We're excited to see what you come up with –
+the goal is to create an audio player for playing a predefined playlist of audio files. Think of it
+like a stripped-down version of Spotify or the classic Winamp.
 
 ### Getting started
 
