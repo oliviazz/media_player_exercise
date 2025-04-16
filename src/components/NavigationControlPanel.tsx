@@ -262,7 +262,6 @@ const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
           <ul className="space-y-2 w-full max-w-md px-2 mx-auto  flex flex-col">
             {Array.isArray(playListData) &&
               playListData.map((playlist) => {
-                const isCurrentPlaylist = currentPlaylist?.id === playlist.id;
                 const isSelected = selectedPlaylist?.name === playlist.name;
                 return (
                   <li
