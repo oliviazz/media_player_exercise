@@ -4,6 +4,10 @@ Hey, thanks for taking the time to work on this exercise. We're excited to see w
 the goal is to create an audio player for playing a predefined playlist of audio files. Think of it
 like a stripped-down version of Spotify or the classic Winamp.
 
+<img width="1493" alt="Screenshot 2025-04-16 at 10 56 01 AM" src="https://github.com/user-attachments/assets/1bf58cf1-a2bf-443f-8b73-feaf6f942151" />
+<img width="1508" alt="Screenshot 2025-04-16 at 10 59 39 AM" src="https://github.com/user-attachments/assets/c523b6bc-2be5-40ff-bf94-94821bea8f74" />
+<img width="1231" alt="Screenshot 2025-04-16 at 10 59 17 AM" src="https://github.com/user-attachments/assets/5094eac5-882c-4ed2-b26e-6d7b0ff9c1d4" />
+
 ### Getting started
 
 Clone this repo which was created _just for you_, make it yours and let us know once the project is complete by pushing
