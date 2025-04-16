@@ -3,11 +3,11 @@
 
 ## Project Screenshots 
 
-**Collapsed/Closed Menu View**
-<img width="1231" alt="Screenshot 2025-04-16 at 10 59 17 AM" src="https://github.com/user-attachments/assets/5094eac5-882c-4ed2-b26e-6d7b0ff9c1d4" />
+**Collapsed Menu View:**
+<img width="1476" alt="Screenshot 2025-04-16 at 4 52 16 PM" src="https://github.com/user-attachments/assets/25951761-62af-42bd-8ff5-e5fb10c21dc6" />
 
-**Expanded Menu View w/ Volume Fade**
-<img width="1502" alt="Screenshot 2025-04-16 at 11 00 36 AM" src="https://github.com/user-attachments/assets/68e4f659-75e6-4fc6-830d-5d7c7c878508" />
+**Expanded Menu View:**
+<img width="1476" alt="Screenshot 2025-04-16 at 4 52 04 PM" src="https://github.com/user-attachments/assets/406e264a-e916-40bd-996d-d82227163639" />
 
 
 Hey, thanks for taking the time to work on this exercise. We're excited to see what you come up with –
