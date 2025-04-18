@@ -269,14 +269,23 @@ const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
                     onClick={() => handlePlaylistSelect(playlist)}
                     className={`p-2 rounded-lg cursor-pointer transition-colors truncate ${
                       isSelected
-                        ? "bg-white/50 text-white"
+                        ? "bg-white/30 text-white"
                         : "bg-white/5 hover:bg-white/40 text-white/80"
+                    } ${
+                      currentPlaylist?.id === playlist.id
+                        ? "bg-primary-500/10 backdrop-blur-sm text-white"
+                        : ""
                     }`}
                   >
                     <p
-                      className={`p-2 rounded-lg cursor-pointer transition-colors truncate ${"text-white"}`}
+                      className={`p-2 rounded-lg cursor-pointer transition-colors truncate ${"text-white"} ${
+                        currentPlaylist?.id === playlist.id
+                          ? "text-primary-300 font-semibold"
+                          : "text-white"
+                      }`}
                     >
-                      {playlist.name}
+                      {playlist.name}{" "}
+                      {currentPlaylist?.id === playlist.id && "〰"}
                     </p>
                     <p className="text-xs text-white/60 pl-2">
                       {playlist.artist || "Unknown"} | {playlist.year} 〰{" "}
@@ -295,11 +304,23 @@ const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
         <div className="w-3/5 p-4 h-full flex flex-col items-center">
           {selectedPlaylist ? (
             <>
-              <div className="flex-shrink-0 w-3/4 mb-4 bg-white/30 rounded-lg p-3">
-                <h3 className="text-lg font-semibold text-white text-left truncate w-full">
+              <div className="flex-shrink-0 w-3/4 mb-4 bg-white/30 rounded-lg p-3 md:auto">
+                <h3
+                  className={`text-lg font-semibold text-white text-left mb-3 truncate w-full ${
+                    currentPlaylist?.id === selectedPlaylist.id
+                      ? "text-primary-300"
+                      : "text-white"
+                  }`}
+                >
                   {selectedPlaylist.name}
                 </h3>
-                <p className="text-sm text-white/40 text-left w-full mt-1">
+                <p
+                  className={`text-sm text-white/40 text-left w-full mt-1 ${
+                    currentPlaylist?.id === selectedPlaylist.id
+                      ? "text-primary-300"
+                      : "text-white"
+                  }`}
+                >
                   {selectedPlaylist.artist} | {selectedPlaylist.year}
                 </p>
               </div>
@@ -343,7 +364,7 @@ const NavigationControlPanel: React.FC<NavigationControlPanelProps> = ({
             </>
           ) : (
             <div className="flex items-center justify-center h-full text-white/50">
-              <p>Select a playlist to display track</p>
+              <p>Select a playlist to display tracks</p>
             </div>
           )}
         </div>

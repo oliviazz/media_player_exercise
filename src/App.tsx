@@ -151,26 +151,31 @@ function App() {
   // ==================================================
   // Play Next Track
   const playNextTrack = () => {
-    if (!currentPlaylist || !currentTrack) return;
-    const nextIndex =
-      (currentTrackIndex + 1 + currentPlaylist.tracks.length) %
-      currentPlaylist.tracks.length;
-    console.log("cur", currentTrackIndex, "bext", nextIndex);
-    console.log("nextIndex", nextIndex);
-    setCurrentTrackIndex(nextIndex);
-    setIsPlaying(true);
-    setCurrentTime(0);
+    if (!currentPlaylist) return;
+
+    setCurrentTrackIndex((prevIndex) => {
+      const nextIndex =
+        (prevIndex + 1 + currentPlaylist.tracks.length) %
+        currentPlaylist.tracks.length;
+      console.log("cur", prevIndex, "next", nextIndex, currentPlaylist);
+      setIsPlaying(true);
+      setCurrentTime(0);
+      return nextIndex;
+    });
   };
 
-  // Play Previous Track
   const playPreviousTrack = () => {
-    if (!currentPlaylist || !currentTrack) return;
-    const prevIndex =
-      (currentTrackIndex - 1 + currentPlaylist.tracks.length) %
-      currentPlaylist.tracks.length;
-    setCurrentTrackIndex(prevIndex);
-    setIsPlaying(true);
-    setCurrentTime(0);
+    if (!currentPlaylist) return;
+
+    setCurrentTrackIndex((prevIndex) => {
+      const nextIndex =
+        (prevIndex - 1 + currentPlaylist.tracks.length) %
+        currentPlaylist.tracks.length;
+      console.log("cur", prevIndex, "next", nextIndex, currentPlaylist);
+      setIsPlaying(true);
+      setCurrentTime(0);
+      return nextIndex;
+    });
   };
 
   // Adjust time of current track
@@ -259,16 +264,18 @@ function App() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       switch (event.code) {
-        // TODO:  L/R arrow keys were wonky, commented out
-        // case "ArrowLeft":
-        //   console.log("Left arrow pressed");
-        //   playPreviousTrack();
-        //   break;
-        // case "ArrowRight":
-        //   console.log("Right arrow pressed");
-        //   playNextTrack();
-        //   break;
+        case "ArrowLeft":
+          event.preventDefault(); // prevent scrolling
+          console.log("Left arrow pressed");
+          playPreviousTrack();
+          break;
+        case "ArrowRight":
+          event.preventDefault(); // prevent scrolling
+          console.log("Right arrow pressed");
+          playNextTrack();
+          break;
         case "Space":
+          event.preventDefault(); // prevent scrolling
           console.log("Space pressed");
           setIsPlaying((prev) => !prev);
           break;
@@ -276,7 +283,10 @@ function App() {
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   // === Update useEffect for Track Changes ===
@@ -287,12 +297,10 @@ function App() {
       currentPlaylist.tracks.length > 0 &&
       currentPlaylistIndex >= currentPlaylist.tracks.length
     ) {
-      // Reset index to 0 if it becomes invalid
       setCurrentPlaylistIndex(0);
     }
 
     const trackToPlay = currentPlaylist?.tracks[currentTrackIndex] ?? null;
-
     if (audioRef.current && trackToPlay) {
       // Only change src and load if the track ID is actually different
       if (audioRef.current.src !== trackToPlay.url) {
@@ -306,8 +314,6 @@ function App() {
           audioRef.current
             .play()
             .catch((e) => console.error("Error playing new track:", e));
-          // Increment count for the *new* track that just started playing
-          // incrementPlayCount(currentPlaylist?.id ?? 0, trackToPlay.id);
         }
       }
     } else if (audioRef.current && !trackToPlay) {
@@ -391,7 +397,9 @@ function App() {
             className="w-20 h-1 accent-white/50 bg-white/20 rounded-full appearance-none cursor-pointer"
           />
           <button onClick={() => setShowInfoTooltip(!showInfoTooltip)}>
-            <InfoIcon className="w-4 h-4" />
+            <InfoIcon
+              className={`w-4 h-4 ${showInfoTooltip ? "opacity-100" : "opacity-50"}`}
+            />
           </button>
         </div>
         {showInfoTooltip && (
@@ -400,8 +408,8 @@ function App() {
             onClick={(e) => e.stopPropagation()}
           >
             <ul className="list-disc list-inside space-y-1">
-              <li>Pull menu up to view playlists.</li>
-              <li>Space toggles play/pause </li>
+              <li>Pull menu up to view playlists</li>
+              <li>Space toggles play/pause</li>
               <br></br>
               <i>By @oliviazz </i>
             </ul>
@@ -411,58 +419,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
-
-// Leaderboard Functions - Not Used, but could show top tracks played per session
-// === Effect to SAVE state TO sessionStorage whenever it changes ===
-// useEffect(() => {
-//   try {
-//     console.log(sessionPlayCounts);
-//     // Only save if sessionPlayCounts is not empty (optional optimization)
-//     if (Object.keys(sessionPlayCounts).length > 0) {
-//       sessionStorage.setItem(
-//         PLAY_COUNTS_SESSION_KEY,
-//         JSON.stringify(sessionPlayCounts)
-//       ); // Save to sessionStorage
-//       // console.log("Saved play counts to sessionStorage"); // Debug log (optional)
-//     } else {
-//       // Optionally remove the item if the counts become empty
-//       sessionStorage.removeItem(PLAY_COUNTS_SESSION_KEY); // Remove from sessionStorage
-//       // console.log("Removed empty play counts from sessionStorage");
-//     }
-//   } catch (error) {
-//     console.error("Error saving play counts to sessionStorage:", error);
-//   }
-// }, [sessionPlayCounts]); // Run this effect whenever sessionPlayCounts changes
-
-// === Function to Increment Play Count (updates state, triggers save effect) ===
-// const incrementPlayCount = (playlistId: number, trackId: string) => {
-//   setSessionPlayCounts((prevCounts) => {
-//     const currentCount = prevCounts[playlistId]?.[trackId] ?? 0;
-//     const newCount = currentCount + 1;
-//     // console.log(`Incrementing play count for Playlist ${playlistId}, Track ${trackId} to ${newCount}`); // Debug log
-//     return {
-//       ...prevCounts,
-//       [playlistId]: {
-//         ...prevCounts[playlistId],
-//         [trackId]: newCount,
-//       },
-//     };
-//   });
-// };
-// === Update useEffect for Playback to call increment ===
-// useEffect(() => {
-//   if (isPlaying && audioRef.current) {
-//     audioRef.current
-//       .play()
-//       .catch((e) => console.error("Error playing audio:", e));
-//     // Increment count when playback starts (or resumes)
-//     if (currentPlaylist && currentTrack) {
-//       incrementPlayCount(currentPlaylist.id, currentTrack.id);
-//     }
-//   } else if (audioRef.current) {
-//     audioRef.current.pause();
-//   }
-//   // eslint-disable-next-line react-hooks/exhaustive-deps
-// }, [isPlaying]); // Trigger ONLY when isPlaying changes - prevents incrementing just because track object reference changed
